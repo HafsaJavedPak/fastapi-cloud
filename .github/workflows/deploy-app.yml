@@ -3,10 +3,10 @@ name: Deploy App
 # Triggers: Runs on PRs and merges to main, but ignores Lambda changes
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths-ignore: ['lambda_src/**', '.github/workflows/deploy-lambda.yml']
   pull_request:
-    branches: [main]
+    branches: [master]
 
 env:
   AWS_REGION: us-east-1

@@ -2,10 +2,10 @@ name: Deploy Lambda
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths: ['lambda_src/**', '.github/workflows/deploy-lambda.yml']
   pull_request:
-    branches: [main]
+    branches: [master]
     paths: ['lambda_src/**']
 
 env:
