@@ -44,7 +44,7 @@ graph TD
     end
 
     subgraph AWS["AWS Cloud Infrastructure (us-east-1)"]
-
+        
         subgraph DNS_Layer["Public Ingress & Security"]
             EIP["Elastic IP (Proxy EIP)<br/><i>Public Gateway</i>"]:::aws
             SG["Security Group (Proxy SG)<br/><i>Port 80/443 Lockdown</i>"]:::aws
@@ -56,11 +56,15 @@ graph TD
 
         subgraph ASG_Layer["Auto Scaling & Compute Tier"]
             ASG["Auto Scaling Group (ASG)<br/><i>fastapi-demo-asg</i>"]:::aws
-
+            
             subgraph Instances["Backend Compute Instances (AL2023)"]
-                App1["FastAPI Instance 1<br/><i>Uvicorn :8000 + INSTANCE_ID</i>"]:::compute
-                App2["FastAPI Instance 2<br/><i>Uvicorn :8000 + INSTANCE_ID</i>"]:::compute
+                App1["FastAPI Instance 1<br/><i>Pulls Image & Runs :8000</i>"]:::compute
+                App2["FastAPI Instance 2<br/><i>Pulls Image & Runs :8000</i>"]:::compute
             end
+        end
+
+        subgraph Registry_Layer["Container Registry"]
+            ECR["Amazon ECR Public<br/><i>FastAPI Docker Image Repository</i>"]:::storage
         end
 
         subgraph Automation_Layer["Event-Driven Automation & Sync"]
@@ -70,7 +74,7 @@ graph TD
         end
 
         subgraph IAM_Layer["Identity & Access Management (IAM)"]
-            LambdaRole["Lambda Execution Role<br/><i>lambda-execution-role / ssm</i>"]:::iam
+            LambdaRole["Lambda Execution Role<br/><i>lambda-execution-role / ssm-access</i>"]:::iam
             EC2Role["Instance Profile / EC2 Role<br/><i>fastapi-ec2-ssm-role</i>"]:::iam
             GitHubRole["GitHub Actions IAM Role<br/><i>github-actions-deploy-role</i>"]:::iam
         end
@@ -84,9 +88,13 @@ graph TD
     %% Flow Connections
     User -->|HTTP Requests| EIP
     EIP --> SG --> ProxyEC2
-
+    
     ProxyEC2 -->|Load Balances Upstream| App1
     ProxyEC2 -->|Load Balances Upstream| App2
+
+    %% Instance Image Pulls
+    App1 -->|Pulls Container Image| ECR
+    App2 -->|Pulls Container Image| ECR
 
     %% Scaling & Event Triggers
     ASG --- Instances
@@ -104,9 +112,9 @@ graph TD
 
     %% CI/CD Deployments
     GH -->|OIDC Token Exchange| GitHubRole
+    GH -->|Builds & Pushes Image| ECR
     GH -->|Packs & Updates Code| S3_GH
-    S3_GH -->|Updates Lambda Code| Lambda
-```
+    S3_GH -->|Updates Lambda Code| Lambda```
 
 ### Why no load balancer?
 
