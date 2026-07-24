@@ -1,0 +1,67 @@
+name: Deploy Lambda
+
+on:
+  push:
+    branches: [main]
+    paths: ['lambda_src/**', '.github/workflows/deploy-lambda.yml']
+  pull_request:
+    branches: [main]
+    paths: ['lambda_src/**']
+
+env:
+  AWS_REGION: us-east-1
+  FUNCTION_NAME: nginx-sync
+  PROXY_INSTANCE_ID: i-0e9c8ea2828db21db
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements-dev.txt
+      - run: pytest tests/test_nginx_sync.py -v
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::565895652566:role/github-actions-deploy-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Package
+        run: cd lambda_src && zip -r ../function.zip . -x "__pycache__/*"
+
+      - name: Deploy
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.FUNCTION_NAME }} \
+            --zip-file fileb://function.zip \
+            --publish
+          aws lambda wait function-updated --function-name ${{ env.FUNCTION_NAME }}
+
+      - name: Smoke test deployed function
+        run: |
+          aws lambda invoke --function-name ${{ env.FUNCTION_NAME }} \
+            --payload '{}' --cli-binary-format raw-in-base64-out /tmp/out.json
+          cat /tmp/out.json
+          grep -qE '"status":"(updated|no_change)"' /tmp/out.json
+
+      - name: Verify nginx upstream is valid after deploy
+        run: |
+          CMD=$(aws ssm send-command --instance-ids ${{ env.PROXY_INSTANCE_ID }} \
+            --document-name AWS-RunShellScript \
+            --parameters '{"commands":["nginx -t"]}' \
+            --query Command.CommandId --output text)
+          sleep 10
+          aws ssm get-command-invocation --command-id $CMD \
+            --instance-id ${{ env.PROXY_INSTANCE_ID }} \
+            --query Status --output text | grep -q Success

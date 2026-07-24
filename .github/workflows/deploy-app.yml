@@ -1,0 +1,71 @@
+name: Deploy App
+
+# Triggers: Runs on PRs and merges to main, but ignores Lambda changes
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['lambda_src/**', '.github/workflows/deploy-lambda.yml']
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: fastapi-demo
+
+jobs:
+  # Continuous Integration (CI): Runs automated tests as a safety gate
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements-dev.txt
+      - run: pytest tests/ -v --tb=short
+
+  # Continuous Deployment (CD): Builds and pushes code only after tests pass
+  build-push:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    # Restricts deployment strictly to direct pushes/merges to the main branch
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    # Grants permission to generate the OIDC JWT token for AWS authentication
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Exchanges the OIDC token with AWS STS for temporary credentials
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::565895652566:role/github-actions-deploy-role
+          aws-region: ${{ env.AWS_REGION }}
+          
+      # Authenticates Docker against your public ECR registry
+      - id: login-ecr-public
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+          
+      # Compiles the Docker image, applies tags, and uploads to AWS
+      - name: Build, tag, push
+        run: |
+          IMAGE_URI=${{ steps.login-ecr-public.outputs.registry }}/${{ env.ECR_REPOSITORY }}
+          
+          # Tag with commit SHA for tracking and 'latest' for active version
+          docker build -t $IMAGE_URI:${{ github.sha }} -t $IMAGE_URI:latest .
+          
+          docker push $IMAGE_URI:${{ github.sha }}
+          docker push $IMAGE_URI:latest
+          
+      # Triggers the Auto Scaling Group rolling update to pull the new container
+      - name: Trigger ASG refresh
+        run: |
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name fastapi-demo-asg \
+            --preferences '{"MinHealthyPercentage":50,"InstanceWarmup":90}' \
+            || echo "ASG not created yet — skipping (expected before Phase 6)"
