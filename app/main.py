@@ -1,4 +1,4 @@
-"""
+"""hiiiiiii
 Desription of file:
 This code is a fully functional, lightweight REST API built using the FastAPI framework in Python.
 It implements a basic CRUD (Create, Read, Update, Delete) system for managing an inventory of "items." It uses an in-memory Python dictionary (_store) as a temporary database, meaning any data you create will disappear when the application restarts. It also uses Pydantic to validate incoming data to ensure users are sending the correct types of information (like ensuring price and stock aren't negative).
