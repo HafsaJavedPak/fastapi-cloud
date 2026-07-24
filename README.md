@@ -85,36 +85,31 @@ graph TD
         end
     end
 
-    %% Flow Connections
     User -->|HTTP Requests| EIP
     EIP --> SG --> ProxyEC2
     
     ProxyEC2 -->|Load Balances Upstream| App1
     ProxyEC2 -->|Load Balances Upstream| App2
 
-    %% Instance Image Pulls
     App1 -->|Pulls Container Image| ECR
     App2 -->|Pulls Container Image| ECR
 
-    %% Scaling & Event Triggers
     ASG --- Instances
     ASG -->|Triggers Scale Event| EB
     EB -->|Invokes Payload| Lambda
     Lambda -->|Dispatches Dynamic Reload via SSM| SSM
     SSM -->|Executes 'nginx -t && reload'| ProxyEC2
 
-    %% IAM Associations
     LambdaRole -.- Lambda
     EC2Role -.- ProxyEC2
     EC2Role -.- App1
     EC2Role -.- App2
     GitHubRole -.- GH
 
-    %% CI/CD Deployments
     GH -->|OIDC Token Exchange| GitHubRole
     GH -->|Builds & Pushes Image| ECR
-    GH -->|Packs & Updates Code| S3_GH
-    S3_GH -->|Updates Lambda Code| Lambda```
+    GH -->|Packs Code| S3_GH
+    S3_GH -->|Updates Lambda Code| Lambda
 ```
 ### Why no load balancer?
 
