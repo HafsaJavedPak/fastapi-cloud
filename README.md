@@ -115,7 +115,7 @@ graph TD
     GH -->|Builds & Pushes Image| ECR
     GH -->|Packs & Updates Code| S3_GH
     S3_GH -->|Updates Lambda Code| Lambda```
-
+```
 ### Why no load balancer?
 
 Instead of an Application Load Balancer, this project uses a single Nginx EC2 instance as a reverse proxy in front of the ASG. Nginx's upstream file is kept up to date automatically: whenever the ASG launches or terminates an instance, EventBridge fires, a Lambda function (`nginx-sync`) looks up the current healthy instance IPs, regenerates `upstream.conf`, and pushes it to the Nginx box over SSM (`nginx -t && nginx -s reload`) — no SSH, no static config, no manual intervention.
