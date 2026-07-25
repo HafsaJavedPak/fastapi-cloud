@@ -309,7 +309,7 @@ aws iam list-open-id-connect-providers
 ```
 
 `trust.json` (scopes the role to this repo only):
-
+GO to github repo -> Settings → Actions -> OIDC copy the Default subject claim prefix
 ```json
 {
   "Version": "2012-10-17",
@@ -319,7 +319,7 @@ aws iam list-open-id-connect-providers
     "Action": "sts:AssumeRoleWithWebIdentity",
     "Condition": {
       "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
-      "StringLike": { "token.actions.githubusercontent.com:sub": "repo:<GITHUB_ORG>/<REPO_NAME>:*" }
+      "StringLike": { "token.actions.githubusercontent.com:sub": "repo:<GITHUB_ORG>@1223/<REPO_NAME>@*" }
     }
   }]
 }
