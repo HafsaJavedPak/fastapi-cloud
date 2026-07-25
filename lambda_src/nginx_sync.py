@@ -1,4 +1,4 @@
-"""hi
+"""
 DESCRIPTION OF FILE:
 This code is an AWS Lambda function designed to act as a dynamic service discovery tool for an Nginx reverse proxy.
 When you use an AWS Auto Scaling Group (ASG), backend servers (like your FastAPI app) spin up and shut down automatically based on traffic. Nginx needs to know the exact IP addresses of these servers to route traffic to them. This script automatically finds all currently healthy instances in the ASG, optionally tests if their API port is actually responding, generates a new Nginx configuration file, and uses AWS Systems Manager (SSM) to inject that file into your Nginx server and reload it.
