@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@v4
       
       # Exchanges the OIDC token with AWS STS for temporary credentials
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
           role-to-assume: arn:aws:iam::565895652566:role/github-actions-deploy-role
           aws-region: ${{ env.AWS_REGION }}
