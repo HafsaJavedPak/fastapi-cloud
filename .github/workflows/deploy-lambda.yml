@@ -54,7 +54,11 @@ jobs:
           aws lambda invoke --function-name ${{ env.FUNCTION_NAME }} \
             --payload '{}' --cli-binary-format raw-in-base64-out /tmp/out.json
           cat /tmp/out.json
-          grep -qE '"status":"(updated|no_change)"' /tmp/out.json
+          status=$(jq -r '.status' /tmp/out.json)
+          if [[ "$status" != "updated" && "$status" != "no_change" ]]; then
+            echo "Unexpected status: $status"
+            exit 1
+          fi
 
       - name: Verify nginx upstream is valid after deploy
         run: |
