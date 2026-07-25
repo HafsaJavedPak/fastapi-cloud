@@ -50,12 +50,16 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registry-type: public
-          
+
+      - name: Set full registry URI
+        id: ecr-registry
+        run: echo "registry=public.ecr.aws/x7w8b8b7" >> "$GITHUB_OUTPUT"
+
       # Compiles the Docker image, applies tags, and uploads to AWS
       - name: Build, tag, push
         run: |
-          IMAGE_URI=${{ steps.login-ecr-public.outputs.registry }}/${{ env.ECR_REPOSITORY }}
-          
+          IMAGE_URI=${{ steps.ecr-registry.outputs.registry }}/${{ env.ECR_REPOSITORY }}          
+
           # Tag with commit SHA for tracking and 'latest' for active version
           docker build -t $IMAGE_URI:${{ github.sha }} -t $IMAGE_URI:latest .
           
