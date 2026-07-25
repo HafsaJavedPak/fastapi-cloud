@@ -28,8 +28,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     
-    # Restricts deployment strictly to direct pushes/merges to the main branch
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Restricts deployment strictly to direct pushes/merges to the master branch
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     
     # Grants permission to generate the OIDC JWT token for AWS authentication
     permissions:
